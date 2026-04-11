@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nicolas Wibart · Alternant DevOps · Kubernetes · AWS · Terraform</title>
+<meta name="description" content="Portfolio de Nicolas Wibart, alternant DevOps spécialisé Kubernetes, Terraform, GitOps et AWS. Disponible septembre 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { geist: ['Geist', 'sans-serif'], mono: ['Geist Mono', 'monospace'] },
+      colors: {
+        coral: { DEFAULT: '#D76C58', soft: 'rgba(215,108,88,0.14)', glow: 'rgba(215,108,88,0.45)' },
+        mauve: '#7F5056',
+        slate2: '#374158',
+        navy: '#222D41',
+        deep: '#11151D',
+      }
+    }
+  }
+}
+</script>
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+<style>
+body { font-family: 'Geist', sans-serif; }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeSlideIn {
+  0% { opacity:0; transform:translateY(30px); filter:blur(8px); }
+  100% { opacity:1; transform:translateY(0); filter:blur(0); }
+}
+@keyframes titleEmergence {
+  0% { opacity:0; transform:translateY(40px) scale(0.97); filter:blur(10px); }
+  60% { filter:blur(0); }
+  100% { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes portraitFall {
+  0% { opacity:0; transform:translateY(-200px) scale(0.5) rotate(-10deg); filter:blur(4px); }
+  60% { opacity:1; transform:translateY(8px) scale(1.05) rotate(2deg); filter:blur(0); }
+  80% { transform:translateY(-4px) scale(0.98) rotate(-1deg); }
+  100% { opacity:1; transform:translateY(0) scale(1) rotate(0); filter:blur(0); }
+}
+@keyframes word-reveal {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes shimmer-mask {
+  to { -webkit-mask-position:200% 0; mask-position:200% 0; }
+}
+@keyframes pulse-dot {
+  0%,100% { box-shadow:0 0 0 0 rgba(215,108,88,0.5); }
+  50% { box-shadow:0 0 0 8px transparent; }
+}
+@keyframes slide { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+/* ===== BORDER-GRADIENT ===== */
+.border-gradient { position:relative; }
+.border-gradient::before {
+  content:""; position:absolute; inset:0; border-radius:inherit; padding:1px;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  background:linear-gradient(225deg, rgba(215,108,88,0) 0%, rgba(215,108,88,0.35) 50%, rgba(215,108,88,0) 100%);
+  pointer-events:none;
+}
+
+/* ===== GRADIENT-BLUR (BOTTOM) ===== */
+.gradient-blur { position:fixed; z-index:5; inset:auto 0 0 0; height:45%; pointer-events:none; }
+.gradient-blur>div { position:absolute; inset:0; }
+.gradient-blur::before { content:""; position:absolute; inset:0; z-index:1; backdrop-filter:blur(0.5px); mask:linear-gradient(to bottom, #0000 0%, #000 12.5%, #000 25%, #0000 37.5%); }
+.gradient-blur>div:nth-of-type(1) { z-index:2; backdrop-filter:blur(1px); mask:linear-gradient(to bottom, #0000 12.5%, #000 25%, #000 37.5%, #0000 50%); }
+.gradient-blur>div:nth-of-type(2) { z-index:3; backdrop-filter:blur(2px); mask:linear-gradient(to bottom, #0000 25%, #000 37.5%, #000 50%, #0000 62.5%); }
+.gradient-blur>div:nth-of-type(3) { z-index:4; backdrop-filter:blur(4px); mask:linear-gradient(to bottom, #0000 37.5%, #000 50%, #000 62.5%, #0000 75%); }
+.gradient-blur>div:nth-of-type(4) { z-index:5; backdrop-filter:blur(8px); mask:linear-gradient(to bottom, #0000 50%, #000 62.5%, #000 75%, #0000 87.5%); }
+.gradient-blur>div:nth-of-type(5) { z-index:6; backdrop-filter:blur(16px); mask:linear-gradient(to bottom, #0000 62.5%, #000 75%, #000 87.5%, #0000 100%); }
+.gradient-blur>div:nth-of-type(6) { z-index:7; backdrop-filter:blur(32px); mask:linear-gradient(to bottom, #0000 75%, #000 87.5%, #000 100%); }
+.gradient-blur::after { content:""; position:absolute; inset:0; z-index:8; backdrop-filter:blur(64px); mask:linear-gradient(to bottom, #0000 87.5%, #000 100%); }
+
+/* ===== SECTIONS ===== */
+section { opacity:1; transform:translateY(0); }
+section:first-of-type { opacity:1; transform:translateY(0); }
+
+/* ===== REVEAL ===== */
+.reveal {
+  opacity:0; transform:translateY(40px); filter:blur(4px);
+  transition: opacity 0.8s cubic-bezier(.16,1,.3,1),
+              transform 0.8s cubic-bezier(.16,1,.3,1),
+              filter 0.6s ease-out;
+  will-change:opacity,transform,filter;
+}
+.reveal.is-in { opacity:1; transform:translateY(0); filter:blur(0); }
+/* Slower variant for certifications etc */
+.reveal-slow {
+  transition: opacity 1.2s cubic-bezier(.16,1,.3,1),
+              transform 1.2s cubic-bezier(.16,1,.3,1),
+              filter 0.9s ease-out;
+}
+.reveal-slow .stagger {
+  transition: opacity 1s cubic-bezier(.16,1,.3,1),
+              transform 1s cubic-bezier(.16,1,.3,1),
+              filter 0.8s ease-out;
+}
+/* Stagger children inside a revealed parent */
+.reveal.is-in .stagger { opacity:1; transform:translateY(0); filter:blur(0); }
+.stagger {
+  opacity:0; transform:translateY(25px); filter:blur(3px);
+  transition: opacity 0.7s cubic-bezier(.16,1,.3,1),
+              transform 0.7s cubic-bezier(.16,1,.3,1),
+              filter 0.5s ease-out;
+}
+
+/* ===== TYPE-WORDS ===== */
+.type-words { --stagger:.2s; --dur:2s; --ease:ease-in-out; --delay:0s; }
+.type-words .w { display:inline-block; opacity:0; animation:word-reveal var(--dur) var(--ease) forwards; animation-delay:calc(var(--delay) + var(--i) * var(--stagger)); }
+.type-words:not(.is-in) .w { animation-name:none; }
+
+/* ===== SHIMMER-MASK ===== */
+.animate-shimmer-mask {
+  position:relative;
+  -webkit-mask:linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent var(--shine,200%)) 0 0/200% 100% no-repeat;
+  mask:linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent var(--shine,200%)) 0 0/200% 100% repeat;
+  animation:shimmer-mask 2.8s ease-in-out 1s both;
+}
+
+/* ===== CTA line glow ===== */
+.btn-line::after {
+  content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:70%; height:1px; border-radius:1px; opacity:.2;
+  background:linear-gradient(90deg,transparent,#fff,transparent);
+  transition:opacity .3s ease;
+}
+.btn-line:hover::after { opacity:.8; }
+
+/* ===== MARQUEE ===== */
+.marquee-track { display:inline-flex; gap:2.5rem; animation:slide 50s linear infinite; }
+
+/* ===== CAROUSEL SCROLLBAR HIDE ===== */
+#work-carousel::-webkit-scrollbar { display:none; }
+#work-carousel { -ms-overflow-style:none; scrollbar-width:none; }
+
+/* ===== PULSE DOT ===== */
+.pulse-dot { animation:pulse-dot 2s ease-in-out infinite; }
+
+/* ===== NEON GLOW UTILS ===== */
+.neon-text { text-shadow:0 0 20px rgba(215,108,88,0.5), 0 0 40px rgba(215,108,88,0.2); }
+.neon-box { box-shadow:0 0 20px rgba(215,108,88,0.35), 0 0 60px rgba(215,108,88,0.12); }
+.neon-box-sm { box-shadow:0 0 10px rgba(215,108,88,0.3); }
+.hover-neon:hover { box-shadow:0 0 20px rgba(215,108,88,0.4), 0 0 60px rgba(215,108,88,0.15); border-color:rgba(215,108,88,0.4) !important; }
+
+/* ===== LIGHT RAYS BACKGROUND ===== */
+.light-rays-container { position:fixed; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index:-1; }
+canvas#light-rays-canvas { width:100%; height:100%; display:block; }
+
+/* ===== PROJECT TECH LOGO ===== */
+.proj-logo { width:24px; height:24px; opacity:0.5; flex-shrink:0; }
+</style>
+</head>
+
+<body class="antialiased text-white bg-deep font-geist min-h-screen">
+
+<!-- ===== WEBGL LIGHT RAYS BACKGROUND ===== -->
+<div class="light-rays-container" id="lightRaysWrap"></div>
+<script>
+(function(){
+  const container = document.getElementById('lightRaysWrap');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'light-rays-canvas';
+  container.appendChild(canvas);
+  const gl = canvas.getContext('webgl', { alpha: true, antialias: true });
+  if (!gl) return;
+  function compileShader(gl,type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){gl.deleteShader(s);return null;}return s;}
+  function createProgram(gl,vs,fs){const v=compileShader(gl,gl.VERTEX_SHADER,vs),f=compileShader(gl,gl.FRAGMENT_SHADER,fs);if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){gl.deleteProgram(p);return null;}return p;}
+  const vertexSrc=`attribute vec2 a_position;varying vec2 vUv;void main(){vUv=a_position*0.5+0.5;gl_Position=vec4(a_position,0.0,1.0);}`;
+  const fragmentSrc=`precision highp float;
+uniform float iTime;uniform vec2 iResolution;uniform vec2 rayPos;uniform vec2 rayDir;uniform vec3 raysColor;uniform float raysSpeed;uniform float lightSpread;uniform float rayLength;uniform float pulsating;uniform float fadeDistance;uniform float saturation;uniform vec2 mousePos;uniform float mouseInfluence;uniform float noiseAmount;uniform float distortion;varying vec2 vUv;
+float noise(vec2 st){return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123);}
+float rayStrength(vec2 raySource,vec2 rayRefDirection,vec2 coord,float seedA,float seedB,float speed){vec2 sourceToCoord=coord-raySource;vec2 dirNorm=normalize(sourceToCoord);float cosAngle=dot(dirNorm,rayRefDirection);float distortedAngle=cosAngle+distortion*sin(iTime*2.0+length(sourceToCoord)*0.01)*0.2;float spreadFactor=pow(max(distortedAngle,0.0),1.0/max(lightSpread,0.001));float distance=length(sourceToCoord);float maxDistance=iResolution.x*rayLength;float lengthFalloff=clamp((maxDistance-distance)/maxDistance,0.0,1.0);float fadeFalloff=clamp((iResolution.x*fadeDistance-distance)/(iResolution.x*fadeDistance),0.5,1.0);float pulse=pulsating>0.5?(0.8+0.2*sin(iTime*speed*3.0)):1.0;float baseStrength=clamp((0.45+0.15*sin(distortedAngle*seedA+iTime*speed))+(0.3+0.2*cos(-distortedAngle*seedB+iTime*speed)),0.0,1.0);return baseStrength*lengthFalloff*fadeFalloff*spreadFactor*pulse;}
+void mainImage(out vec4 fragColor,in vec2 fragCoord){vec2 coord=vec2(fragCoord.x,iResolution.y-fragCoord.y);vec2 finalRayDir=rayDir;if(mouseInfluence>0.0){vec2 mouseScreenPos=mousePos*iResolution.xy;vec2 mouseDirection=normalize(mouseScreenPos-rayPos);finalRayDir=normalize(mix(rayDir,mouseDirection,mouseInfluence));}vec4 rays1=vec4(1.0)*rayStrength(rayPos,finalRayDir,coord,36.2214,21.11349,1.5*raysSpeed);vec4 rays2=vec4(1.0)*rayStrength(rayPos,finalRayDir,coord,22.3991,18.0234,1.1*raysSpeed);fragColor=rays1*0.5+rays2*0.4;if(noiseAmount>0.0){float n=noise(coord*0.01+iTime*0.1);fragColor.rgb*=(1.0-noiseAmount+noiseAmount*n);}float brightness=1.0-(coord.y/iResolution.y);fragColor.x*=(0.1+brightness*0.8);fragColor.y*=(0.3+brightness*0.6);fragColor.z*=(0.5+brightness*0.5);if(saturation!=1.0){float gray=dot(fragColor.rgb,vec3(0.299,0.587,0.114));fragColor.rgb=mix(vec3(gray),fragColor.rgb,saturation);}fragColor.rgb*=raysColor;}
+void main(){vec4 color;mainImage(color,gl_FragCoord.xy);gl_FragColor=color;}`;
+  const program=createProgram(gl,vertexSrc,fragmentSrc);
+  gl.useProgram(program);
+  const posLoc=gl.getAttribLocation(program,'a_position');
+  const posBuf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc,2,gl.FLOAT,false,0,0);
+  const uni={};
+  ['iTime','iResolution','rayPos','rayDir','raysColor','raysSpeed','lightSpread','rayLength','pulsating','fadeDistance','saturation','mousePos','mouseInfluence','noiseAmount','distortion'].forEach(n=>uni[n]=gl.getUniformLocation(program,n));
+  const state={raysColor:'#D76C58',raysOrigin:'top',raysSpeed:2.2,lightSpread:3.0,rayLength:4.9,pulsating:false,fadeDistance:2.0,saturation:0.6,mouseInfluence:0.12,noiseAmount:0,distortion:0};
+  function hexToRgb(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);return m?[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]:[1,1,1];}
+  function getAnchorAndDir(origin,w,h){const o=0.2;switch(origin){case'top-left':return{anchor:[0,-o*h],dir:[0,1]};case'top-right':return{anchor:[w,-o*h],dir:[0,1]};case'left':return{anchor:[-o*w,0.5*h],dir:[1,0]};case'right':return{anchor:[(1+o)*w,0.5*h],dir:[-1,0]};case'bottom-left':return{anchor:[0,(1+o)*h],dir:[0,-1]};case'bottom-center':return{anchor:[0.5*w,(1+o)*h],dir:[0,-1]};case'bottom-right':return{anchor:[w,(1+o)*h],dir:[0,-1]};default:return{anchor:[0.5*w,-o*h],dir:[0,1]};}}
+  const mouse={x:0.5,y:0.5},smoothMouse={x:0.5,y:0.5};
+  window.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width;mouse.y=(e.clientY-r.top)/r.height;});
+  function resize(){const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.floor(container.clientWidth*dpr);const h=Math.floor(container.clientHeight*dpr);canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+  window.addEventListener('resize',resize);resize();
+  function setUniforms(t){gl.uniform1f(uni.iTime,t*0.001);gl.uniform2f(uni.iResolution,canvas.width,canvas.height);const{anchor,dir}=getAnchorAndDir(state.raysOrigin,canvas.width,canvas.height);gl.uniform2f(uni.rayPos,anchor[0],anchor[1]);gl.uniform2f(uni.rayDir,dir[0],dir[1]);const c=hexToRgb(state.raysColor);gl.uniform3f(uni.raysColor,c[0],c[1],c[2]);gl.uniform1f(uni.raysSpeed,state.raysSpeed);gl.uniform1f(uni.lightSpread,state.lightSpread);gl.uniform1f(uni.rayLength,state.rayLength);gl.uniform1f(uni.pulsating,state.pulsating?1:0);gl.uniform1f(uni.fadeDistance,state.fadeDistance);gl.uniform1f(uni.saturation,state.saturation);gl.uniform2f(uni.mousePos,smoothMouse.x,smoothMouse.y);gl.uniform1f(uni.mouseInfluence,state.mouseInfluence);gl.uniform1f(uni.noiseAmount,state.noiseAmount);gl.uniform1f(uni.distortion,state.distortion);}
+  function frame(t){const s=0.92;smoothMouse.x=smoothMouse.x*s+(1-s)*mouse.x;smoothMouse.y=smoothMouse.y*s+(1-s)*mouse.y;setUniforms(t);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLES,0,6);requestAnimationFrame(frame);}
+  requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- ===== GRADIENT BLUR (BOTTOM) ===== -->
+<div class="gradient-blur"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+<div class="overflow-hidden relative">
+
+<!-- ===== NAVIGATION ===== -->
+<header class="fixed z-20 bg-deep/50 w-full top-0 backdrop-blur-xl" style="animation:fadeSlideIn .5s ease-in-out .1s both">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="flex items-center justify-between py-5 border-b border-white/[0.06]">
+      <a href="#" class="text-lg font-semibold tracking-tight">Nicolas Wibart</a>
+      <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition" id="mobToggle" aria-label="Menu">
+        <iconify-icon icon="solar:hamburger-menu-linear" width="20"></iconify-icon>
+      </button>
+      <nav class="hidden lg:flex items-center gap-8 text-sm text-white/70 absolute left-1/2 -translate-x-1/2">
+        <a href="#stack" class="hover:text-white transition">Stack</a>
+        <a href="#projets" class="hover:text-white transition">Projets</a>
+        <a href="#parcours" class="hover:text-white transition">Parcours</a>
+        <a href="#blog" class="hover:text-white transition">Journal</a>
+        <a href="https://nicolaswibart-devops.github.io/nicolas-wibart-cv/" target="_blank" class="hover:text-white transition">Mon CV</a>
+      </nav>
+      <div class="hidden md:flex items-center gap-3">
+        <a href="https://linkedin.com/in/nicolaswibart" target="_blank" rel="noopener" class="group inline-flex cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:scale-105 border-gradient hover:text-white gap-2 text-sm font-medium text-white/80 tracking-tight bg-white/5 rounded-full py-3 px-5 relative backdrop-blur-xl items-center justify-center btn-line">
+          <iconify-icon icon="simple-icons:linkedin" width="16"></iconify-icon> LinkedIn
+        </a>
+        <a href="#contact" class="group inline-flex min-w-[140px] cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:scale-105 border-gradient hover:text-white gap-2 text-sm font-medium text-white/80 tracking-tight bg-white/5 rounded-full py-3 px-5 relative backdrop-blur-xl items-center justify-center btn-line">
+          Me contacter
+          <iconify-icon icon="solar:arrow-right-linear" width="16"></iconify-icon>
+        </a>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <nav id="mobMenu" class="lg:hidden hidden absolute top-full left-0 right-0 bg-deep/95 backdrop-blur-xl border-b border-white/10" style="max-height:0;transition:max-height .3s ease;">
+      <div class="flex flex-col p-6 space-y-4">
+        <a href="#stack" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Stack</a>
+        <a href="#projets" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Projets</a>
+        <a href="#parcours" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Parcours</a>
+        <a href="#blog" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Journal</a>
+        <a href="https://nicolaswibart-devops.github.io/nicolas-wibart-cv/" target="_blank" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Mon CV</a>
+        <a href="#contact" class="text-base text-white/70 hover:text-white transition py-2" onclick="closeMob()">Contact</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="min-h-screen flex flex-col section-visible text-center px-6 pb-24 relative items-center justify-center">
+  <!-- Badge -->
+  <div class="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-4 py-2 backdrop-blur-sm text-white/80 ring-1 ring-white/10" style="animation:fadeSlideIn .5s ease-in-out .2s both">
+    <span class="w-[7px] h-[7px] rounded-full bg-coral pulse-dot"></span>
+    Disponible · Alternance sept. 2026
+  </div>
+
+  <!-- Headline -->
+  <h1 class="leading-[0.95] font-semibold text-white tracking-tight mt-0 mb-0 pt-16 sm:pt-24 pb-10 sm:pb-12" style="animation:titleEmergence 1.8s ease-out both">
+    <span class="block text-[10vw] sm:text-7xl lg:text-8xl flex items-center justify-center gap-3 sm:gap-6">
+      <img src="./assets/image_fond_noir_transparent.png" alt="Nicolas Wibart" class="w-[14vw] h-[14vw] sm:w-[100px] sm:h-[100px] lg:w-[120px] lg:h-[120px] rounded-full object-cover object-top border-2 border-coral/40 shadow-[0_0_30px_rgba(215,108,88,0.3)]" style="animation:portraitFall 1.2s cubic-bezier(0.34,1.56,0.64,1) .8s both">
+      Alternant
+    </span>
+    <span class="block text-[10vw] sm:text-7xl lg:text-8xl text-coral neon-text animate-shimmer-mask" style="--shine:220%">
+      DevOps Engineer
+    </span>
+    <span class="block text-[10vw] sm:text-7xl lg:text-8xl text-white/60">Build · Deploy · Monitor</span>
+  </h1>
+
+  <!-- TypeWords subtitle -->
+  <p class="max-w-3xl mx-auto text-lg md:text-xl text-white/70 type-words" id="heroWords" style="--stagger:.15s;--dur:1.5s;--ease:ease-in-out;--delay:.4s" aria-label="Infrastructure as Code, Kubernetes, GitOps et AWS. You build it, you run it."></p>
+
+  <!-- CTAs -->
+  <div class="mt-10 flex items-center justify-center gap-4" style="animation:fadeSlideIn .5s ease-in-out .8s both">
+    <a href="#projets" class="relative inline-flex items-center justify-center gap-2 overflow-hidden transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(215,108,88,0.35),0_40px_80px_rgba(215,108,88,0.18)] group ring-white/30 ring-1 text-base font-semibold text-white tracking-tight bg-deep/95 rounded-full py-3 px-6 shadow-[0_0_0_1px_rgba(215,108,88,0.25),inset_0_0_0_1px_rgba(255,255,255,0.08)]" style="z-index:2">
+      <span class="z-[1] group-hover:translate-x-1 transition-transform duration-300 relative">Voir mes projets</span>
+      <span aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300" style="background:linear-gradient(45deg,rgba(215,108,88,0.7) 0%,rgba(127,80,86,0.7) 50%,rgba(55,65,88,0.7) 100%)"></span>
+      <span aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-full" style="box-shadow:0 0 0 1px rgba(215,108,88,0.4),0 18px 60px rgba(215,108,88,0.2);background:radial-gradient(140% 160% at 50% -20%,rgba(215,108,88,0.2) 0%,rgba(215,108,88,0.06) 35%,transparent 60%)"></span>
+    </a>
+    <a href="https://github.com/nicolaswibart-DevOps" target="_blank" rel="noopener" class="group inline-flex min-w-[120px] cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:scale-105 border-gradient hover:text-white text-sm font-medium text-white/80 tracking-tight bg-white/5 rounded-full py-3 px-5 relative backdrop-blur-xl gap-2 items-center justify-center btn-line">
+      <iconify-icon icon="mdi:github" width="18"></iconify-icon> GitHub
+    </a>
+    <a href="https://nicolaswibart-devops.github.io/nicolas-wibart-cv/" target="_blank" rel="noopener" class="group inline-flex min-w-[120px] cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:scale-105 border-gradient hover:text-white text-sm font-medium text-white/80 tracking-tight bg-white/5 rounded-full py-3 px-5 relative backdrop-blur-xl gap-2 items-center justify-center btn-line">
+      <iconify-icon icon="solar:document-text-linear" width="18"></iconify-icon> Mon CV
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="flex flex-wrap text-xs text-white/50 mt-8 pt-16 pb-8 gap-x-6 gap-y-4 items-center justify-center" style="animation:fadeSlideIn .5s ease-in-out 1s both">
+    <span class="inline-flex items-center gap-1.5"><iconify-icon icon="solar:diploma-linear" width="16" class="text-white/70"></iconify-icon> 2x certifie AWS</span>
+    <span class="inline-flex items-center gap-1.5"><iconify-icon icon="solar:code-square-linear" width="16" class="text-white/70"></iconify-icon> 20+ projets DevOps & Python</span>
+    <span class="inline-flex items-center gap-1.5"><iconify-icon icon="solar:users-group-rounded-linear" width="16" class="text-white/70"></iconify-icon> 19k abonnes LinkedIn</span>
+  </div>
+</section>
+</div>
+
+<!-- ===== MARQUEE ===== -->
+<div class="border-y border-white/[0.06] py-3 overflow-hidden whitespace-nowrap relative z-10" aria-hidden="true">
+  <div class="marquee-track font-mono text-sm text-white/30 uppercase tracking-wider">
+    <span>Kubernetes · Terraform · Ansible · ArgoCD · <b class="text-coral neon-text font-medium">You build it, you run it</b> · AWS · Prometheus · Grafana · Docker · Helm · FastAPI · Proxmox ·</span>
+    <span>Kubernetes · Terraform · Ansible · ArgoCD · <b class="text-coral neon-text font-medium">You build it, you run it</b> · AWS · Prometheus · Grafana · Docker · Helm · FastAPI · Proxmox ·</span>
+  </div>
+</div>
+
+<!-- ===== STACK TECHNIQUE ===== -->
+<section class="z-10 pt-32 pb-24 relative" id="stack">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="reveal">
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-5">
+        <iconify-icon icon="solar:server-square-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Stack technique</span>
+      </div>
+      <h2 class="text-4xl md:text-6xl font-semibold text-white tracking-tight drop-shadow-xl">Outils du quotidien.</h2>
+      <p class="text-base md:text-lg text-white/60 mt-4 max-w-xl">Stack orientee production, GitOps et observabilite.</p>
+    </div>
+
+    <div class="reveal grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-12">
+      <!-- AVANCE: Linux, Docker, Python -->
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="solar:monitor-linear" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Linux / Bash</h4><span class="text-xs font-mono text-coral uppercase">Avance</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-coral neon-box-sm" style="width:90%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:docker" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Docker / Compose</h4><span class="text-xs font-mono text-coral uppercase">Avance</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-coral neon-box-sm" style="width:90%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:python" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Python</h4><span class="text-xs font-mono text-coral uppercase">Avance</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-coral neon-box-sm" style="width:85%"></div></div></div>
+      <!-- INTERMEDIAIRE: tout le reste -->
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:kubernetes" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Kubernetes</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:70%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:terraform" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Terraform</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:70%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:ansible" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Ansible</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:gitlab" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">GitLab CI/CD</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:70%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:argo" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">ArgoCD</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:prometheus" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Prometheus / Grafana</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:fastapi" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">FastAPI</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:helm" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">Helm / Kustomize</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 hover-neon"><iconify-icon icon="simple-icons:amazonaws" width="28" class="text-coral mb-3 block"></iconify-icon><h4 class="font-medium">AWS : EC2 · S3 · VPC</h4><span class="text-xs font-mono text-white/50 uppercase">Intermediaire</span><div class="h-[3px] rounded bg-white/10 mt-3"><div class="h-full rounded bg-mauve" style="width:65%"></div></div></div>
+    </div>
+
+    <!-- Certifications AWS ONLY -->
+    <div class="reveal mt-24">
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-5">
+        <iconify-icon icon="solar:diploma-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Certifications</span>
+      </div>
+      <h2 class="text-4xl md:text-6xl font-semibold text-white tracking-tight drop-shadow-xl">Certifie AWS <span class="text-white/40">x2</span></h2>
+    </div>
+    <div class="reveal reveal-slow grid md:grid-cols-2 gap-6 mt-10">
+      <div class="stagger border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-xl text-center hover-neon transition-all duration-300 hover:-translate-y-1">
+        <img src="./assets/aws-certified-cloud-practitioner.png" alt="AWS Cloud Practitioner" class="w-44 h-44 object-contain mx-auto mb-4" style="filter:drop-shadow(0 0 20px rgba(215,108,88,0.2))">
+        <h3 class="text-lg font-semibold">Cloud Practitioner</h3>
+        <p class="text-xs font-mono text-white/40 mt-1">CLF-C02 · Foundational</p>
+        <div class="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-coral uppercase tracking-wider neon-text"><iconify-icon icon="solar:verified-check-bold" width="16"></iconify-icon> Certifie</div>
+      </div>
+      <div class="stagger border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-xl text-center hover-neon transition-all duration-300 hover:-translate-y-1">
+        <img src="./assets/aws-certified-solutions-architect-associate (1).png" alt="AWS Solutions Architect Associate" class="w-44 h-44 object-contain mx-auto mb-4" style="filter:drop-shadow(0 0 20px rgba(215,108,88,0.2))">
+        <h3 class="text-lg font-semibold">Solutions Architect Associate</h3>
+        <p class="text-xs font-mono text-white/40 mt-1">SAA-C03 · Associate</p>
+        <div class="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-coral uppercase tracking-wider neon-text"><iconify-icon icon="solar:verified-check-bold" width="16"></iconify-icon> Certifie</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PROJETS ===== -->
+<section class="z-10 pt-24 pb-24 relative" id="projets">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="reveal">
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-5">
+        <iconify-icon icon="solar:code-square-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Projets</span>
+      </div>
+      <h2 class="text-4xl md:text-6xl font-semibold text-white tracking-tight drop-shadow-xl">Du code qui tourne.</h2>
+      <p class="text-base md:text-lg text-white/60 mt-4">Examens pratiques, side-projects et infrastructure from scratch.</p>
+    </div>
+
+    <!-- Featured project: K8s On-Premise -->
+    <div class="reveal border-gradient before:rounded-3xl bg-white/5 rounded-3xl p-6 md:p-10 backdrop-blur-xl mt-12 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-coral to-transparent neon-box"></div>
+      <div class="grid lg:grid-cols-2 gap-8">
+        <div>
+          <span class="text-xs font-mono text-coral uppercase tracking-widest neon-text">Projet fil rouge</span>
+          <h3 class="text-2xl md:text-3xl font-semibold tracking-tight mt-3 mb-4">Infrastructure K8s On-Premise</h3>
+          <p class="text-white/60 mb-6">Cluster Kubernetes from scratch sur Proxmox. GitOps ArgoCD, 3 envs isolees, Traefik + TLS, Prometheus/Grafana, backup Velero.</p>
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-coral/10 text-coral ring-1 ring-coral/30">Terraform</span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-coral/10 text-coral ring-1 ring-coral/30">Ansible</span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/5 text-white/60 ring-1 ring-white/10">K8s</span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/5 text-white/60 ring-1 ring-white/10">ArgoCD</span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/5 text-white/60 ring-1 ring-white/10">Prometheus</span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/5 text-white/60 ring-1 ring-white/10">FastAPI</span>
+          </div>
+          <div class="grid grid-cols-4 gap-4 pt-4 border-t border-white/[0.06]">
+            <div><b class="text-lg font-mono text-coral neon-text">3</b><small class="block text-[10px] font-mono text-white/40 uppercase tracking-wider">envs</small></div>
+            <div><b class="text-lg font-mono text-coral neon-text">&lt;30m</b><small class="block text-[10px] font-mono text-white/40 uppercase tracking-wider">RTO</small></div>
+            <div><b class="text-lg font-mono text-coral neon-text">HPA</b><small class="block text-[10px] font-mono text-white/40 uppercase tracking-wider">auto-scale</small></div>
+            <div><b class="text-lg font-mono text-coral neon-text">100%</b><small class="block text-[10px] font-mono text-white/40 uppercase tracking-wider">IaC</small></div>
+          </div>
+        </div>
+        <!-- Architecture diagram — DevOps pipeline flow -->
+        <div class="bg-[#0e1219] border border-white/[0.06] rounded-xl p-4 md:p-5 self-center overflow-x-auto">
+          <svg viewBox="0 0 520 380" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto" style="min-width:400px">
+            <defs>
+              <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#D76C58"/></marker>
+              <marker id="ahm" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7F5056"/></marker>
+              <marker id="ahg" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#374158"/></marker>
+            </defs>
+            <!-- Row 1: Dev → GitLab CI → Docker Registry -->
+            <rect x="10" y="15" width="120" height="50" rx="8" fill="#1a1d27" stroke="#D76C58" stroke-width="1.2"/>
+            <text x="70" y="35" fill="#D76C58" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Developpeurs</text>
+            <text x="70" y="49" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">FastAPI · React · Git</text>
+            <line x1="130" y1="40" x2="160" y2="40" stroke="#D76C58" stroke-width="1" marker-end="url(#ah)"/>
+            <rect x="160" y="15" width="130" height="50" rx="8" fill="#1a1d27" stroke="#7F5056" stroke-width="1.2"/>
+            <text x="225" y="35" fill="#7F5056" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">GitLab CI/CD</text>
+            <text x="225" y="49" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">Build · Test · Scan · Deploy</text>
+            <line x1="290" y1="40" x2="320" y2="40" stroke="#7F5056" stroke-width="1" marker-end="url(#ahm)"/>
+            <rect x="320" y="15" width="120" height="50" rx="8" fill="#1a1d27" stroke="#D76C58" stroke-width="1.2"/>
+            <text x="380" y="35" fill="#D76C58" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Docker Registry</text>
+            <text x="380" y="49" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">backend · frontend imgs</text>
+            <!-- Row 2: Terraform + Ansible → Proxmox VMs → K8s Cluster -->
+            <line x1="70" y1="65" x2="70" y2="90" stroke="#D76C58" stroke-width="1" marker-end="url(#ah)"/>
+            <rect x="10" y="90" width="120" height="55" rx="8" fill="#1a1d27" stroke="#D76C58" stroke-width="1.2"/>
+            <text x="70" y="110" fill="#D76C58" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Terraform</text>
+            <text x="70" y="124" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">3 VMs Proxmox</text>
+            <text x="70" y="136" fill="#8892a4" font-size="7" font-family="monospace" text-anchor="middle">master + 2 workers</text>
+            <line x1="130" y1="117" x2="160" y2="117" stroke="#D76C58" stroke-width="1" marker-end="url(#ah)"/>
+            <rect x="160" y="90" width="130" height="55" rx="8" fill="#1a1d27" stroke="#7F5056" stroke-width="1.2"/>
+            <text x="225" y="110" fill="#7F5056" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Ansible</text>
+            <text x="225" y="124" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">kubeadm · Calico CNI</text>
+            <text x="225" y="136" fill="#8892a4" font-size="7" font-family="monospace" text-anchor="middle">containerd · MetalLB</text>
+            <line x1="290" y1="117" x2="320" y2="117" stroke="#7F5056" stroke-width="1" marker-end="url(#ahm)"/>
+            <rect x="320" y="85" width="190" height="65" rx="8" fill="#1a1d27" stroke="#D76C58" stroke-width="1.5"/>
+            <text x="415" y="105" fill="#D76C58" font-size="11" font-family="monospace" text-anchor="middle" font-weight="700">Kubernetes Cluster</text>
+            <text x="415" y="119" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">Traefik Ingress · TLS auto</text>
+            <text x="415" y="132" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">RBAC · NetworkPolicy · Secrets</text>
+            <text x="415" y="143" fill="#8892a4" font-size="7" font-family="monospace" text-anchor="middle">HPA · PDB · Anti-affinity</text>
+            <!-- Arrow from Registry down to cluster -->
+            <line x1="380" y1="65" x2="415" y2="85" stroke="#374158" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ahg)"/>
+            <!-- Row 3: ArgoCD → 3 Namespaces -->
+            <line x1="415" y1="150" x2="415" y2="170" stroke="#D76C58" stroke-width="1" marker-end="url(#ah)"/>
+            <rect x="10" y="170" width="130" height="48" rx="8" fill="#1a1d27" stroke="#7F5056" stroke-width="1.2"/>
+            <text x="75" y="190" fill="#7F5056" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">ArgoCD GitOps</text>
+            <text x="75" y="204" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">7 apps · auto-sync</text>
+            <line x1="140" y1="194" x2="320" y2="194" stroke="#7F5056" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#ahm)"/>
+            <!-- Namespaces box -->
+            <rect x="320" y="170" width="190" height="100" rx="8" fill="#0e1219" stroke="#374158" stroke-width="1" stroke-dasharray="5,3"/>
+            <text x="415" y="186" fill="#8892a4" font-size="8" font-family="monospace" text-anchor="middle">3 Namespaces isoles</text>
+            <rect x="335" y="192" width="160" height="22" rx="4" fill="#1a1d27" stroke="#4ade80" stroke-width="0.8"/>
+            <text x="415" y="207" fill="#4ade80" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="600">PROD</text>
+            <text x="485" y="207" fill="#8892a4" font-size="6" font-family="monospace" text-anchor="end">RBAC read-only</text>
+            <rect x="335" y="218" width="160" height="22" rx="4" fill="#1a1d27" stroke="#fbbf24" stroke-width="0.8"/>
+            <text x="415" y="233" fill="#fbbf24" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="600">STAGING</text>
+            <rect x="335" y="244" width="160" height="22" rx="4" fill="#1a1d27" stroke="#60a5fa" stroke-width="0.8"/>
+            <text x="415" y="259" fill="#60a5fa" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="600">DEV</text>
+            <!-- Row 4: Monitoring + Backup -->
+            <rect x="10" y="240" width="130" height="48" rx="8" fill="#1a1d27" stroke="#D76C58" stroke-width="1.2"/>
+            <text x="75" y="260" fill="#D76C58" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Prometheus</text>
+            <text x="75" y="274" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">Grafana · Alertmanager</text>
+            <rect x="160" y="240" width="130" height="48" rx="8" fill="#1a1d27" stroke="#7F5056" stroke-width="1.2"/>
+            <text x="225" y="260" fill="#7F5056" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Velero + MinIO</text>
+            <text x="225" y="274" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">Backup S3 · RTO &lt;30m</text>
+            <!-- Dashed lines from ops to cluster -->
+            <line x1="140" y1="258" x2="320" y2="230" stroke="#374158" stroke-width="0.7" stroke-dasharray="3,3"/>
+            <line x1="290" y1="258" x2="320" y2="245" stroke="#374158" stroke-width="0.7" stroke-dasharray="3,3"/>
+            <!-- Row 5: External access -->
+            <rect x="10" y="310" width="500" height="48" rx="8" fill="#1a1d27" stroke="#374158" stroke-width="1"/>
+            <text x="260" y="330" fill="#D76C58" font-size="10" font-family="monospace" text-anchor="middle" font-weight="600">Acces Externe · DNS public · TLS self-signed (cert-manager)</text>
+            <text x="260" y="346" fill="#8892a4" font-size="7.5" font-family="monospace" text-anchor="middle">app.nicolas-ingress.abrdns.com · api.nicolas-ingress.abrdns.com · grafana.nicolas-ingress.abrdns.com</text>
+            <line x1="415" y1="270" x2="415" y2="310" stroke="#374158" stroke-width="0.7" stroke-dasharray="3,3" marker-end="url(#ahg)"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project grid -->
+    <div class="flex flex-wrap gap-3 mt-12">
+      <button class="filter-btn active px-4 py-2 rounded-full border text-sm transition bg-white/10 text-white border-white/30" onclick="filterProj('all',this)">Tout</button>
+      <button class="filter-btn px-4 py-2 rounded-full border text-sm transition bg-white/5 border-white/10 text-white/60 hover:bg-white/10" onclick="filterProj('ds',this)">DataScientest</button>
+      <button class="filter-btn px-4 py-2 rounded-full border text-sm transition bg-white/5 border-white/10 text-white/60 hover:bg-white/10" onclick="filterProj('py',this)">Python / Udemy</button>
+    </div>
+
+    <div class="reveal grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8" id="projGrid">
+      <!-- DS projects with specific repo links + tech logos -->
+      <a href="https://github.com/nicolaswibart-DevOps/Jenkins-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Jenkins CI/CD Pipeline</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:jenkins" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">01</span></div></div><p class="text-sm text-white/50 mb-3">Pipeline multi-envs K8s via Helm.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Jenkins</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Helm</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">K8s</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Terraform-DevOps-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Terraform AWS IaC</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:terraform" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">02</span></div></div><p class="text-sm text-white/50 mb-3">Infra AWS multi-AZ modulaire.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-coral/10 text-coral">Terraform</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">EC2</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">RDS</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Ansible-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Ansible multi-roles</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:ansible" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">03</span></div></div><p class="text-sm text-white/50 mb-3">WordPress + MySQL, Jinja2.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-coral/10 text-coral">Ansible</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">MySQL</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Kubernetes-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Kubernetes Deployment</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:kubernetes" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">04</span></div></div><p class="text-sm text-white/50 mb-3">StatefulSet PostgreSQL + ETCD.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">K8s</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Postgres</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Docker-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Docker pipeline tests</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:docker" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">05</span></div></div><p class="text-sm text-white/50 mb-3">Tests auto multi-conteneurs.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Docker</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Compose</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Datadog-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Datadog Observabilite</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:datadog" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">06</span></div></div><p class="text-sm text-white/50 mb-3">APM + integration Prometheus.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Datadog</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">APM</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Gitlab-DevOps-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">GitLab CI microservices</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:gitlab" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">07</span></div></div><p class="text-sm text-white/50 mb-3">3 images, push DockerHub.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">GitLab</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Docker</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/SQL_DB-DevOps-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">PostgreSQL MLD Anime</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:postgresql" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">08</span></div></div><p class="text-sm text-white/50 mb-3">Modelisation MERISE + SQL.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">SQL</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">MERISE</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/FastAPI-Devops-Exam-Datascientest" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="ds"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">FastAPI Full Stack</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:fastapi" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">09</span></div></div><p class="text-sm text-white/50 mb-3">API REST + Auth + PostgreSQL.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">FastAPI</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Python</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <!-- Python / Udemy projects -->
+      <a href="https://github.com/nicolaswibart-DevOps/Formation-Udemy-Python" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">CRM Generator</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:python" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">13</span></div></div><p class="text-sm text-white/50 mb-3">Donnees fictives · Faker + logging.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Faker</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">logging</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Formation-Udemy-Python" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Scraper Airbnb Playwright</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:playwright" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">14</span></div></div><p class="text-sm text-white/50 mb-3">Anti-bot + rotation proxies.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Playwright</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Formation-Udemy-Python" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Trieur CLI</h4><div class="flex items-center gap-2"><iconify-icon icon="solar:folder-with-files-linear" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">15</span></div></div><p class="text-sm text-white/50 mb-3">Tri auto · pathlib + config JSON.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">pathlib</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">CLI</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Formation_Udemy_devise" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Tableau de Bord Devises</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:django" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">16</span></div></div><p class="text-sm text-white/50 mb-3">Dashboard Django · API taux de change · Chart.js temps reel.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Django</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">API REST</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Chart.js</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <a href="https://github.com/nicolaswibart-DevOps/Formation_Udemy_Mon_premier_Blog" target="_blank" class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1 block" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Mon Premier Blog</h4><div class="flex items-center gap-2"><iconify-icon icon="simple-icons:django" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">17</span></div></div><p class="text-sm text-white/50 mb-3">Blog Django · CRUD articles · templates · routing dynamique.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Django</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Templates</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">CRUD</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-coral mr-1 neon-box-sm"></span>Livré</span><iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon></div></a>
+
+      <!-- In progress (private) -->
+      <div class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl transition-all duration-300 block opacity-70" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Web Scraper Amazon</h4><div class="flex items-center gap-2"><iconify-icon icon="solar:lock-linear" width="16" class="text-white/30"></iconify-icon><iconify-icon icon="simple-icons:python" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">10</span></div></div><p class="text-sm text-white/50 mb-3">Scraper prix + alertes Pushover + Sentry.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">requests</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Pushover</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1"></span>In progress</span></div></div>
+
+      <div class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl transition-all duration-300 block opacity-70" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">FlaskGPT</h4><div class="flex items-center gap-2"><iconify-icon icon="solar:lock-linear" width="16" class="text-white/30"></iconify-icon><iconify-icon icon="simple-icons:flask" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">11</span></div></div><p class="text-sm text-white/50 mb-3">Clone ChatGPT · Flask + OpenAI + SSE.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">Flask</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">OpenAI</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1"></span>In progress</span></div></div>
+
+      <div class="proj-card border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl transition-all duration-300 block opacity-70" data-cat="py"><div class="flex justify-between items-center mb-2"><h4 class="font-medium">Bot Discord</h4><div class="flex items-center gap-2"><iconify-icon icon="solar:lock-linear" width="16" class="text-white/30"></iconify-icon><iconify-icon icon="simple-icons:discord" width="20" class="proj-logo"></iconify-icon><span class="text-xs font-mono text-white/30">12</span></div></div><p class="text-sm text-white/50 mb-3">Bot async · commandes + dotenv.</p><div class="flex flex-wrap gap-1.5 mb-3"><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">discord.py</span><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/50">async</span></div><div class="flex justify-between items-center text-[10px] font-mono text-white/30 uppercase tracking-wider pt-3 border-t border-white/[0.06]"><span><span class="inline-block w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1"></span>In progress</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARCOURS ===== -->
+<section class="z-10 pt-24 pb-24 relative" id="parcours">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="reveal">
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-5">
+        <iconify-icon icon="solar:routing-2-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Parcours</span>
+      </div>
+      <h2 class="text-4xl md:text-6xl font-semibold text-white tracking-tight drop-shadow-xl">Experience & formation.</h2>
+    </div>
+
+    <!-- Stats -->
+    <div class="reveal grid grid-cols-2 lg:grid-cols-4 border border-white/[0.06] rounded-2xl overflow-hidden mt-12 mb-16 bg-white/[0.03] backdrop-blur-xl">
+      <div class="p-6 border-r border-b lg:border-b-0 border-white/[0.06]">
+        <div class="text-3xl font-mono font-medium neon-text">19k<sup class="text-coral text-sm">+</sup></div>
+        <div class="text-[10px] font-mono text-white/40 uppercase tracking-wider mt-1">Abonnes LinkedIn</div>
+      </div>
+      <div class="p-6 border-b lg:border-b-0 lg:border-r border-white/[0.06]">
+        <div class="text-3xl font-mono font-medium neon-text">450<sup class="text-coral text-sm">h</sup></div>
+        <div class="text-[10px] font-mono text-white/40 uppercase tracking-wider mt-1">Formation DevOps</div>
+      </div>
+      <div class="p-6 border-r border-white/[0.06]">
+        <div class="text-3xl font-mono font-medium neon-text">20<sup class="text-coral text-sm">+</sup></div>
+        <div class="text-[10px] font-mono text-white/40 uppercase tracking-wider mt-1">Projets Python & DevOps</div>
+      </div>
+      <div class="p-6">
+        <div class="text-3xl font-mono font-medium neon-text">75<sup class="text-coral text-sm">h</sup></div>
+        <div class="text-[10px] font-mono text-white/40 uppercase tracking-wider mt-1">Formation Python</div>
+      </div>
+    </div>
+
+    <!-- Timeline + Photo layout -->
+    <div class="flex flex-col lg:flex-row gap-0 relative">
+      <!-- Photo column - left side -->
+      <div class="hidden lg:block lg:w-[38%] flex-shrink-0 relative">
+        <div class="sticky top-32">
+          <img src="./assets/homme_laptop_transparent.png" alt="Nicolas Wibart" class="w-full max-w-[420px] object-cover object-top" style="mask-image:linear-gradient(to bottom, #000 80%, transparent 100%); -webkit-mask-image:linear-gradient(to bottom, #000 80%, transparent 100%);">
+        </div>
+      </div>
+
+      <!-- Timeline column - right side -->
+      <div class="flex-1 relative">
+      <div class="absolute left-5 top-8 bottom-8 w-px bg-gradient-to-b from-coral to-transparent hidden md:block"></div>
+      <div class="space-y-6">
+        <div class="flex gap-5 items-start reveal">
+          <div class="flex-shrink-0 z-10 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-mauve flex items-center justify-center neon-box"><span class="text-sm font-bold">5</span></div>
+          <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <img src="./assets/epitech___european_institute_of_technology_logo.jpeg" class="w-7 h-7 rounded-md object-contain" alt="">
+              <div><span class="text-xs font-mono text-coral">2026 → 2028</span><h4 class="font-semibold tracking-tight">Epitech MSc Pro, 4e annee</h4></div>
+            </div>
+            <p class="text-sm text-white/50">Bordeaux · Specialisation cloud, cybersecurite.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 items-start reveal">
+          <div class="flex-shrink-0 z-10 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-mauve flex items-center justify-center neon-box"><span class="text-sm font-bold">4</span></div>
+          <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <img src="./assets/lioraschool_logo.jpeg" class="w-7 h-7 rounded-md object-contain" alt="">
+              <div><span class="text-xs font-mono text-coral">2026</span><h4 class="font-semibold tracking-tight">Formation DevOps DataScientest, RNCP6</h4></div>
+            </div>
+            <p class="text-sm text-white/50">450h · Docker, K8s, Terraform, Ansible, CI/CD, Monitoring.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 items-start reveal">
+          <div class="flex-shrink-0 z-10 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-mauve flex items-center justify-center neon-box"><span class="text-sm font-bold">3</span></div>
+          <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <img src="./assets/udemy_logo.jpeg" class="w-7 h-7 rounded-md object-contain" alt="">
+              <div><span class="text-xs font-mono text-coral">2025</span><h4 class="font-semibold tracking-tight">Formation Udemy, Python</h4></div>
+            </div>
+            <p class="text-sm text-white/50">75h · Web scraping, Flask, Discord bots, CLI tools, APIs.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 items-start reveal">
+          <div class="flex-shrink-0 z-10 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-mauve flex items-center justify-center neon-box"><span class="text-sm font-bold">2</span></div>
+          <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <img src="./assets/data_recrutement_logo.jpeg" class="w-7 h-7 rounded-md object-contain" alt="">
+              <div><span class="text-xs font-mono text-coral">3,5 ans d'experience</span><h4 class="font-semibold tracking-tight">Tech Recruiter · Practice Leader DevOps · Data Recrutement</h4></div>
+            </div>
+            <p class="text-sm text-white/50">Bot Python/FastAPI maison. Perimetre : CTO, Head of DevOps, SRE, Cloud, Data.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 items-start reveal">
+          <div class="flex-shrink-0 z-10 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-mauve flex items-center justify-center neon-box"><span class="text-sm font-bold">1</span></div>
+          <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <img src="./assets/inp_agrotoulouse_logo.jpeg" class="w-7 h-7 rounded-md object-contain" alt="">
+              <div><span class="text-xs font-mono text-coral">BAC+5 cursus ingenieur</span><h4 class="font-semibold tracking-tight">INP / ENSAT Toulouse</h4></div>
+            </div>
+            <p class="text-sm text-white/50">Ingenieur agronome.</p>
+          </div>
+        </div>
+      </div>
+    </div><!-- /space-y-6 -->
+    </div><!-- /timeline column -->
+    </div><!-- /flex photo+timeline -->
+
+    <!-- Soft skills -->
+    <div class="reveal grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-16">
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1"><div class="w-11 h-11 rounded-xl bg-gradient-to-br from-coral/20 to-mauve/20 border border-white/[0.08] flex items-center justify-center mb-4"><iconify-icon icon="solar:rocket-2-linear" width="22" class="text-coral"></iconify-icon></div><h4 class="font-medium mb-1">Autonomie operationnelle</h4><p class="text-xs text-white/50">De bout en bout, sans supervision constante.</p></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1"><div class="w-11 h-11 rounded-xl bg-gradient-to-br from-coral/20 to-mauve/20 border border-white/[0.08] flex items-center justify-center mb-4"><iconify-icon icon="solar:compass-big-linear" width="22" class="text-coral"></iconify-icon></div><h4 class="font-medium mb-1">Vision architecte</h4><p class="text-xs text-white/50">Scalabilite, resilience et securite d'abord.</p></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1"><div class="w-11 h-11 rounded-xl bg-gradient-to-br from-coral/20 to-mauve/20 border border-white/[0.08] flex items-center justify-center mb-4"><iconify-icon icon="solar:shield-check-linear" width="22" class="text-coral"></iconify-icon></div><h4 class="font-medium mb-1">Responsabilite E2E</h4><p class="text-xs text-white/50">Je porte mes deploiements jusqu'en prod.</p></div>
+      <div class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-5 backdrop-blur-xl hover-neon transition-all duration-300 hover:-translate-y-1"><div class="w-11 h-11 rounded-xl bg-gradient-to-br from-coral/20 to-mauve/20 border border-white/[0.08] flex items-center justify-center mb-4"><iconify-icon icon="solar:graph-up-linear" width="22" class="text-coral"></iconify-icon></div><h4 class="font-medium mb-1">Technophile</h4><p class="text-xs text-white/50">Passione par l'IA, l'automatisation et les technos emergentes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BLOG ===== -->
+<section class="z-10 pt-24 pb-24 relative" id="blog">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="reveal">
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-5">
+        <iconify-icon icon="solar:document-text-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Journal</span>
+      </div>
+      <div class="flex justify-between items-baseline flex-wrap gap-4">
+        <h2 class="text-4xl md:text-6xl font-semibold text-white tracking-tight drop-shadow-xl">Notes de terrain.</h2>
+        <span class="text-xs font-mono text-white/30 uppercase tracking-wider">MaJ · <b class="text-coral neon-text">10.04.2026</b></span>
+      </div>
+    </div>
+
+    <div class="reveal grid lg:grid-cols-3 gap-6 mt-12">
+      <a href="./articles/k8s-onpremise.html" class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex flex-col hover-neon transition-all duration-300 hover:-translate-y-1 block no-underline">
+        <span class="text-[10px] font-mono text-coral uppercase tracking-widest neon-text mb-3">Kubernetes</span>
+        <h4 class="text-lg font-semibold tracking-tight mb-2 text-white">Deployer un cluster K8s on-premise avec kubeadm et Ansible</h4>
+        <span class="text-xs font-mono text-white/30 mb-3">02.04.2026 · 12 min</span>
+        <p class="text-sm text-white/50 flex-grow mb-4">Bootstrap kubeadm, roles Ansible reutilisables, gotchas reseau et premier pod en prod.</p>
+        <span class="inline-flex items-center gap-2 text-sm text-coral font-medium">Lire <iconify-icon icon="solar:arrow-right-linear" width="14"></iconify-icon></span>
+      </a>
+      <a href="./articles/gitops-argocd.html" class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex flex-col hover-neon transition-all duration-300 hover:-translate-y-1 block no-underline">
+        <span class="text-[10px] font-mono text-coral uppercase tracking-widest neon-text mb-3">GitOps</span>
+        <h4 class="text-lg font-semibold tracking-tight mb-2 text-white">GitOps avec ArgoCD : sync automatique dev/staging/prod</h4>
+        <span class="text-xs font-mono text-white/30 mb-3">20.03.2026 · 8 min</span>
+        <p class="text-sm text-white/50 flex-grow mb-4">Structurer un repo GitOps, gerer 3 envs et eviter le "works on my cluster".</p>
+        <span class="inline-flex items-center gap-2 text-sm text-coral font-medium">Lire <iconify-icon icon="solar:arrow-right-linear" width="14"></iconify-icon></span>
+      </a>
+      <a href="./articles/monitoring-prometheus.html" class="border-gradient before:rounded-2xl bg-white/5 rounded-2xl p-6 backdrop-blur-xl flex flex-col hover-neon transition-all duration-300 hover:-translate-y-1 block no-underline">
+        <span class="text-[10px] font-mono text-coral uppercase tracking-widest neon-text mb-3">Monitoring</span>
+        <h4 class="text-lg font-semibold tracking-tight mb-2 text-white">Monitoring K8s : Prometheus + Grafana de zero</h4>
+        <span class="text-xs font-mono text-white/30 mb-3">05.03.2026 · 10 min</span>
+        <p class="text-sm text-white/50 flex-grow mb-4">kube-prometheus-stack, dashboards et alertes qui ne reveillent pas a 3h.</p>
+        <span class="inline-flex items-center gap-2 text-sm text-coral font-medium">Lire <iconify-icon icon="solar:arrow-right-linear" width="14"></iconify-icon></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CONTACT ===== -->
+<section class="z-10 pt-32 pb-32 relative" id="contact">
+  <div class="max-w-4xl mx-auto px-6 lg:px-8">
+    <div class="border-gradient before:rounded-3xl bg-white/5 rounded-3xl p-8 md:p-12 backdrop-blur-xl text-center relative overflow-hidden reveal">
+      <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-coral to-transparent neon-box"></div>
+      <div class="inline-flex gap-2 border-gradient before:rounded-full bg-white/5 rounded-full px-3 py-1.5 backdrop-blur items-center mb-6">
+        <iconify-icon icon="solar:letter-linear" width="14" class="text-coral"></iconify-icon>
+        <span class="text-xs text-white/70">Contact</span>
+      </div>
+      <h2 class="text-3xl md:text-5xl font-semibold tracking-tight mb-4">Parlons <span class="text-coral neon-text italic">alternance.</span></h2>
+      <p class="text-base md:text-lg text-white/60 max-w-2xl mx-auto mb-8">Si vous etes a la recherche d'un alternant pour travailler sur des sujets infra DevOps, je serai le candidat ideal.</p>
+
+      <div class="flex flex-col sm:flex-row gap-3 items-center justify-center mb-8">
+        <a href="mailto:Nicolas.wibart@gmail.com" class="inline-flex items-center gap-2 text-sm font-semibold text-deep bg-gradient-to-r from-coral to-mauve rounded-full px-6 py-3 shadow-[0_2.8px_2.2px_rgba(0,0,0,.034),0_22.3px_17.9px_rgba(0,0,0,.072),0_100px_80px_rgba(0,0,0,.12)] hover:opacity-90 transition neon-box">
+          Envoyer un email <iconify-icon icon="solar:letter-linear" width="16"></iconify-icon>
+        </a>
+        <a href="https://linkedin.com/in/nicolaswibart" target="_blank" rel="noopener" class="inline-flex items-center gap-2 border-gradient before:rounded-full hover:bg-white/10 transition text-sm font-medium text-white/80 bg-white/5 rounded-full px-6 py-3">
+          <iconify-icon icon="simple-icons:linkedin" width="16"></iconify-icon> LinkedIn
+        </a>
+        <a href="https://nicolaswibart-devops.github.io/nicolas-wibart-cv/" target="_blank" rel="noopener" class="inline-flex items-center gap-2 border-gradient before:rounded-full hover:bg-white/10 transition text-sm font-medium text-white/80 bg-white/5 rounded-full px-6 py-3">
+          <iconify-icon icon="solar:document-text-linear" width="16"></iconify-icon> Mon CV
+        </a>
+      </div>
+
+      <!-- Contact form -->
+      <form class="max-w-md mx-auto text-left space-y-4 mt-8" id="contactForm">
+        <div><label class="block text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">Nom</label><input type="text" name="name" required class="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-coral/50 focus:shadow-[0_0_10px_rgba(215,108,88,0.2)] transition"></div>
+        <div><label class="block text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">Email</label><input type="email" name="email" required class="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-coral/50 focus:shadow-[0_0_10px_rgba(215,108,88,0.2)] transition"></div>
+        <div><label class="block text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">Message</label><textarea name="message" required placeholder="Parlez-moi de votre equipe, votre stack..." class="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-coral/50 focus:shadow-[0_0_10px_rgba(215,108,88,0.2)] transition resize-y min-h-[100px]"></textarea></div>
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold text-deep bg-gradient-to-r from-coral to-mauve rounded-full px-6 py-3 neon-box hover:opacity-90 transition">Envoyer <iconify-icon icon="solar:plain-2-linear" width="14"></iconify-icon></button>
+      </form>
+
+      <div class="flex flex-wrap gap-6 justify-center text-sm text-white/40 mt-8 pt-6 border-t border-white/[0.06]">
+        <a href="mailto:Nicolas.wibart@gmail.com" class="inline-flex items-center gap-1.5 hover:text-white transition"><iconify-icon icon="solar:letter-linear" width="16"></iconify-icon> Email</a>
+        <a href="https://linkedin.com/in/nicolaswibart" target="_blank" class="inline-flex items-center gap-1.5 hover:text-white transition"><iconify-icon icon="simple-icons:linkedin" width="16"></iconify-icon> LinkedIn</a>
+        <a href="https://github.com/nicolaswibart-DevOps" target="_blank" class="inline-flex items-center gap-1.5 hover:text-white transition"><iconify-icon icon="mdi:github" width="16"></iconify-icon> GitHub</a>
+        <span class="inline-flex items-center gap-1.5"><iconify-icon icon="solar:map-point-linear" width="16"></iconify-icon> Bordeaux</span>
+      </div>
+      <div class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-full border border-white/[0.08] text-xs font-mono text-white/80">
+        <span class="w-[7px] h-[7px] rounded-full bg-coral pulse-dot"></span>
+        Alternance · Septembre 2026 · Bordeaux / Remote
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="z-10 relative">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8 border-t border-white/[0.06] pt-12 pb-12">
+    <div class="grid md:grid-cols-3 gap-10 mb-12">
+      <div><p class="text-2xl md:text-3xl font-medium tracking-tight">You build it, <span class="text-coral italic neon-text">you run it.</span></p></div>
+      <div><h5 class="text-xs font-mono text-white/40 uppercase tracking-wider mb-4">Navigation</h5><ul class="space-y-2 text-sm text-white/50"><li><a href="#stack" class="hover:text-white transition">Stack</a></li><li><a href="#projets" class="hover:text-white transition">Projets</a></li><li><a href="#parcours" class="hover:text-white transition">Parcours</a></li><li><a href="#blog" class="hover:text-white transition">Journal</a></li></ul></div>
+      <div><h5 class="text-xs font-mono text-white/40 uppercase tracking-wider mb-4">Reseaux</h5><ul class="space-y-2 text-sm text-white/50"><li><a href="https://github.com/nicolaswibart-DevOps" target="_blank" class="hover:text-white transition">GitHub</a></li><li><a href="https://linkedin.com/in/nicolaswibart" target="_blank" class="hover:text-white transition">LinkedIn</a></li><li><a href="mailto:Nicolas.wibart@gmail.com" class="hover:text-white transition">Email</a></li></ul></div>
+    </div>
+    <div class="flex flex-wrap justify-between items-center gap-4 pt-8 border-t border-white/[0.06] text-xs text-white/30">
+      <span>&copy; 2026 · Nicolas Wibart</span>
+      <span>Bordeaux, FR</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ===== UNIFIED REVEAL OBSERVER ===== */
+// Auto-tag grid/flex children as stagger items
+document.querySelectorAll('.reveal[class*="grid"] > *, .reveal[class*="space-y"] > *').forEach(child => {
+  if (!child.classList.contains('stagger') && !child.classList.contains('reveal')) {
+    child.classList.add('stagger');
+  }
+});
+
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('is-in');
+      // Stagger children with incremental delay
+      const isSlow = e.target.classList.contains('reveal-slow');
+      const step = isSlow ? 250 : 100;
+      const max = isSlow ? 1200 : 800;
+      const children = e.target.querySelectorAll('.stagger');
+      children.forEach((child, i) => {
+        child.style.transitionDelay = Math.min(i * step, max) + 'ms';
+      });
+      revealObs.unobserve(e.target); // animate once, stay visible
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -10% 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ===== TYPE-WORDS ===== */
+const hw = document.getElementById('heroWords');
+if (hw) {
+  const text = "Infrastructure as Code, Kubernetes, GitOps et AWS. You build it, you run it.";
+  hw.innerHTML = text.split(' ').map((w, i) => `<span class="w" style="--i:${i}">${w}&nbsp;</span>`).join('');
+  const twObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); twObs.unobserve(e.target); }});
+  }, { threshold: 0.2 });
+  twObs.observe(hw);
+}
+
+/* ===== MOBILE MENU ===== */
+const mobToggle = document.getElementById('mobToggle');
+const mobMenu = document.getElementById('mobMenu');
+mobToggle.addEventListener('click', () => {
+  const open = mobMenu.style.maxHeight !== '0px' && mobMenu.style.maxHeight !== '';
+  mobMenu.style.maxHeight = open ? '0px' : '400px';
+  mobMenu.classList.toggle('hidden', open);
+});
+function closeMob() { mobMenu.style.maxHeight = '0px'; setTimeout(() => mobMenu.classList.add('hidden'), 300); }
+
+/* ===== PROJECT FILTERS ===== */
+function filterProj(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('active', 'bg-white/10', 'text-white', 'border-white/30'); b.classList.add('bg-white/5', 'border-white/10', 'text-white/60'); });
+  btn.classList.add('active', 'bg-white/10', 'text-white', 'border-white/30');
+  btn.classList.remove('bg-white/5', 'border-white/10', 'text-white/60');
+  document.querySelectorAll('.proj-card').forEach(c => {
+    c.style.display = (cat === 'all' || c.dataset.cat === cat) ? '' : 'none';
+  });
+}
+
+/* ===== CONTACT FORM → MAILTO ===== */
+document.getElementById('contactForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const name = this.elements.name.value;
+  const email = this.elements.email.value;
+  const message = this.elements.message.value;
+  const subject = encodeURIComponent('Contact Portfolio : ' + name);
+  const body = encodeURIComponent('De: ' + name + ' (' + email + ')\n\n' + message);
+  window.location.href = 'mailto:Nicolas.wibart@gmail.com?subject=' + subject + '&body=' + body;
+});
+
+/* ===== NAV ACTIVE ===== */
+const navLinks = document.querySelectorAll('header nav a');
+window.addEventListener('scroll', () => {
+  const y = window.scrollY + 150;
+  document.querySelectorAll('section[id]').forEach(s => {
+    if (y >= s.offsetTop && y < s.offsetTop + s.offsetHeight) {
+      navLinks.forEach(a => a.style.color = a.getAttribute('href') === '#' + s.id ? '#fff' : '');
+    }
+  });
+}, { passive: true });
+</script>
+</body>
+</html>

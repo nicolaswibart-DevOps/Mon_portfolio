@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitOps avec ArgoCD : sync automatique dev/staging/prod · Nicolas Wibart</title>
+<meta name="description" content="Comment structurer un repo GitOps avec ArgoCD pour gérer 3 environnements isolés sans s'arracher les cheveux.">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./_article.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="brand"><span class="brand-dot"></span> Nicolas Wibart</a>
+    <a href="../index.html#blog" class="back">← Journal</a>
+  </div>
+</nav>
+
+<article class="post">
+  <div class="tag">GitOps</div>
+  <h1>GitOps avec ArgoCD : sync automatique dev/staging/prod</h1>
+  <div class="meta">
+    <span>20.03.2026</span>
+    <span>8 min de lecture</span>
+    <span>Nicolas Wibart</span>
+  </div>
+
+  <p class="lead">
+    Le GitOps, c'est simple sur le papier : <em>Git est la source de vérité, le cluster s'aligne</em>. En pratique, dès qu'on parle de 3 environnements, la structure du repo devient le point critique.
+  </p>
+
+  <h2>Le principe en une image</h2>
+  <figure>
+    <svg viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="80" width="120" height="80" rx="4" stroke="#fafafa" stroke-width="1" fill="#0b0b0e"/>
+      <text x="80" y="115" fill="#fafafa" font-size="13" font-family="Geist Mono" text-anchor="middle">Git Repo</text>
+      <text x="80" y="135" fill="#a1a1aa" font-size="9" font-family="Geist Mono" text-anchor="middle">manifests/</text>
+
+      <line x1="140" y1="120" x2="220" y2="120" stroke="#D76C58" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="180" y="112" fill="#D76C58" font-size="9" font-family="Geist Mono" text-anchor="middle">poll</text>
+
+      <rect x="220" y="80" width="120" height="80" rx="4" stroke="#D76C58" stroke-width="1.5" fill="#0b0b0e"/>
+      <text x="280" y="115" fill="#D76C58" font-size="13" font-family="Geist Mono" text-anchor="middle">ArgoCD</text>
+      <text x="280" y="135" fill="#a1a1aa" font-size="9" font-family="Geist Mono" text-anchor="middle">reconcile loop</text>
+
+      <line x1="340" y1="100" x2="430" y2="40" stroke="#D76C58" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="340" y1="120" x2="430" y2="120" stroke="#D76C58" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="340" y1="140" x2="430" y2="200" stroke="#D76C58" stroke-width="1.5" marker-end="url(#a)"/>
+
+      <rect x="430" y="20" width="140" height="42" rx="4" stroke="#22c55e" stroke-width="1" fill="#0b0b0e"/>
+      <text x="500" y="46" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">cluster · dev</text>
+      <rect x="430" y="100" width="140" height="42" rx="4" stroke="#fbbf24" stroke-width="1" fill="#0b0b0e"/>
+      <text x="500" y="126" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">cluster · staging</text>
+      <rect x="430" y="180" width="140" height="42" rx="4" stroke="#ef4444" stroke-width="1" fill="#0b0b0e"/>
+      <text x="500" y="206" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">cluster · prod</text>
+
+      <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D76C58"/></marker></defs>
+    </svg>
+    <figcaption>Le flux GitOps : Git → ArgoCD → 3 namespaces, jamais de kubectl manuel</figcaption>
+  </figure>
+
+  <h2>La structure de repo qui marche</h2>
+  <p>
+    Après avoir testé Helm seul, Kustomize seul, puis le combo, j'ai retenu la structure suivante. Elle évite la duplication tout en gardant chaque environnement <strong>complètement isolable</strong>.
+  </p>
+
+  <pre data-lang="text"><code>infra-gitops/
+├── apps/
+│   ├── base/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   └── kustomization.yaml
+│   └── overlays/
+│       ├── dev/
+│       │   ├── kustomization.yaml
+│       │   └── patch-replicas.yaml
+│       ├── staging/
+│       │   ├── kustomization.yaml
+│       │   └── patch-replicas.yaml
+│       └── prod/
+│           ├── kustomization.yaml
+│           ├── patch-replicas.yaml
+│           └── patch-resources.yaml
+└── argocd-apps/
+    ├── app-dev.yaml
+    ├── app-staging.yaml
+    └── app-prod.yaml</code></pre>
+
+  <div class="callout">
+    <b>Règle d'or</b>
+    Ne jamais éditer une ressource directement dans <code>base/</code> pour un seul environnement. Si tu en es là, c'est qu'il faut un overlay.
+  </div>
+
+  <h2>Une Application ArgoCD type</h2>
+  <pre data-lang="yaml"><code><span class="cm"># argocd-apps/app-prod.yaml</span>
+<span class="kw">apiVersion:</span> argoproj.io/v1alpha1
+<span class="kw">kind:</span> Application
+<span class="kw">metadata:</span>
+  <span class="kw">name:</span> fastapi-prod
+  <span class="kw">namespace:</span> argocd
+<span class="kw">spec:</span>
+  <span class="kw">project:</span> default
+  <span class="kw">source:</span>
+    <span class="kw">repoURL:</span> <span class="st">https://github.com/nicolaswibartDevOps/infra-gitops</span>
+    <span class="kw">targetRevision:</span> main
+    <span class="kw">path:</span> apps/overlays/prod
+  <span class="kw">destination:</span>
+    <span class="kw">server:</span> https://kubernetes.default.svc
+    <span class="kw">namespace:</span> prod
+  <span class="kw">syncPolicy:</span>
+    <span class="kw">automated:</span>
+      <span class="kw">prune:</span> <span class="st">true</span>
+      <span class="kw">selfHeal:</span> <span class="st">true</span>
+    <span class="kw">syncOptions:</span>
+      - CreateNamespace=true</code></pre>
+
+  <p>
+    Trois choses à noter ici : <code>prune: true</code> supprime automatiquement les ressources retirées du Git, <code>selfHeal: true</code> annule toute modification manuelle (oui, même la tienne à 23h), et <code>CreateNamespace: true</code> évite un <code>kubectl create ns</code> oublié.
+  </p>
+
+  <h2>Promotion entre environnements</h2>
+  <p>
+    Comment passer une nouvelle version de <code>dev</code> à <code>prod</code> ? Pas avec <code>kubectl set image</code>. Avec un commit Git.
+  </p>
+
+  <ol>
+    <li>Le CI build et push <code>myapp:1.4.2</code> sur le registry</li>
+    <li>Un job met à jour <code>apps/overlays/dev/kustomization.yaml</code> → ArgoCD sync dev en ~1 min</li>
+    <li>Une PR manuelle met à jour <code>staging</code>, puis <code>prod</code></li>
+  </ol>
+
+  <div class="callout">
+    <b>Pourquoi pas tout en automatique ?</b>
+    Pour la prod, chaque changement passe par <strong>une PR avec review obligatoire</strong>. Le GitOps automatise le deploiement, pas la prise de decision.
+  </div>
+
+  <h2>Le piège du drift silencieux</h2>
+  <p>
+    Le premier mois, j'ai eu un cas étrange : une <code>ConfigMap</code> qui changeait toute seule. Cause : un opérateur tiers patchait la ressource. ArgoCD remontait <code>OutOfSync</code> en boucle, puis <code>selfHeal</code> annulait, puis l'opérateur re-patchait. Boucle infinie.
+  </p>
+
+  <p>Solution : annoter la ressource pour qu'ArgoCD l'ignore partiellement.</p>
+
+  <pre data-lang="yaml"><code><span class="kw">metadata:</span>
+  <span class="kw">annotations:</span>
+    <span class="kw">argocd.argoproj.io/compare-options:</span> IgnoreExtraneous
+    <span class="kw">argocd.argoproj.io/sync-options:</span> Prune=false</code></pre>
+
+  <h2>Ce que GitOps a changé pour moi</h2>
+  <ul>
+    <li><strong>Plus de "ça marche sur mon cluster"</strong> ; l'état désiré est versionné, point.</li>
+    <li><strong>Audit gratuit</strong> ; chaque changement de prod = un commit avec auteur, date, raison.</li>
+    <li><strong>Rollback en 30 secondes</strong> ; <code>git revert</code>, push, ArgoCD fait le reste.</li>
+    <li><strong>Onboarding accéléré</strong> ; tu veux comprendre la prod ? Tu lis le repo, pas un cluster.</li>
+  </ul>
+
+  <blockquote>
+    "Si ton processus de déploiement implique un humain qui se souvient d'une commande, tu n'as pas un processus, tu as un risque."
+  </blockquote>
+
+  <div class="end">
+    <span>← <a href="../index.html#blog">Retour au journal</a></span>
+    <span class="sig">$ echo "you build it, you run it"</span>
+  </div>
+</article>
+
+</body>
+</html>

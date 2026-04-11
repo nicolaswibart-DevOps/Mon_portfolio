@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Déployer un cluster K8s on-premise avec kubeadm et Ansible · Nicolas Wibart</title>
+<meta name="description" content="Retour d'expérience complet sur le bootstrap d'un cluster Kubernetes on-premise : kubeadm, rôles Ansible, gotchas réseau.">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./_article.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="brand"><span class="brand-dot"></span> Nicolas Wibart</a>
+    <a href="../index.html#blog" class="back">← Journal</a>
+  </div>
+</nav>
+
+<article class="post">
+  <div class="tag">Kubernetes</div>
+  <h1>Déployer un cluster K8s on-premise avec kubeadm et Ansible</h1>
+  <div class="meta">
+    <span>02.04.2026</span>
+    <span>12 min de lecture</span>
+    <span>Nicolas Wibart</span>
+  </div>
+
+  <p class="lead">
+    Monter un cluster Kubernetes "bare-metal" sur Proxmox, c'est le meilleur moyen de comprendre <em>vraiment</em> ce que fait EKS à ta place. Voici comment j'ai bootstrappé un cluster 3 nœuds avec <code>kubeadm</code>, le tout automatisé via Ansible.
+  </p>
+
+  <h2>Le contexte</h2>
+  <p>
+    Dans le cadre de mon projet fil rouge, j'avais besoin d'un cluster K8s <strong>reproductible, jetable et 100% IaC</strong>. Objectif : pouvoir le détruire et le recréer en moins de 30 minutes sans jamais toucher à la souris. L'infrastructure sous-jacente : 3 VMs Proxmox (1 control plane + 2 workers), Ubuntu Server 22.04, 4 vCPU / 8 GB RAM chacune.
+  </p>
+
+  <div class="callout">
+    <b>Pourquoi on-premise ?</b>
+    Pour deux raisons : apprendre ce que gèrent les cloud providers (etcd, CNI, kubelet config), et ne pas exploser la facture AWS.
+  </div>
+
+  <h2>L'architecture cible</h2>
+  <figure>
+    <svg viewBox="0 0 600 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="20" width="560" height="220" rx="6" stroke="#27272a" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="30" y="40" fill="#71717a" font-size="11" font-family="Geist Mono">proxmox host</text>
+
+      <rect x="50" y="60" width="160" height="160" rx="4" stroke="#D76C58" stroke-width="1.5" fill="#0b0b0e"/>
+      <text x="60" y="82" fill="#D76C58" font-size="11" font-family="Geist Mono">control-plane</text>
+      <text x="60" y="105" fill="#a1a1aa" font-size="10" font-family="Geist Mono">kube-apiserver</text>
+      <text x="60" y="122" fill="#a1a1aa" font-size="10" font-family="Geist Mono">etcd</text>
+      <text x="60" y="139" fill="#a1a1aa" font-size="10" font-family="Geist Mono">scheduler</text>
+      <text x="60" y="156" fill="#a1a1aa" font-size="10" font-family="Geist Mono">controller-mgr</text>
+      <text x="60" y="180" fill="#71717a" font-size="9" font-family="Geist Mono">CNI: Calico</text>
+      <text x="60" y="200" fill="#71717a" font-size="9" font-family="Geist Mono">192.168.1.10</text>
+
+      <rect x="230" y="60" width="160" height="160" rx="4" stroke="#fafafa" stroke-width="1" fill="#0b0b0e"/>
+      <text x="240" y="82" fill="#fafafa" font-size="11" font-family="Geist Mono">worker-01</text>
+      <text x="240" y="105" fill="#a1a1aa" font-size="10" font-family="Geist Mono">kubelet</text>
+      <text x="240" y="122" fill="#a1a1aa" font-size="10" font-family="Geist Mono">containerd</text>
+      <text x="240" y="139" fill="#a1a1aa" font-size="10" font-family="Geist Mono">kube-proxy</text>
+      <text x="240" y="180" fill="#71717a" font-size="9" font-family="Geist Mono">192.168.1.11</text>
+
+      <rect x="410" y="60" width="160" height="160" rx="4" stroke="#fafafa" stroke-width="1" fill="#0b0b0e"/>
+      <text x="420" y="82" fill="#fafafa" font-size="11" font-family="Geist Mono">worker-02</text>
+      <text x="420" y="105" fill="#a1a1aa" font-size="10" font-family="Geist Mono">kubelet</text>
+      <text x="420" y="122" fill="#a1a1aa" font-size="10" font-family="Geist Mono">containerd</text>
+      <text x="420" y="139" fill="#a1a1aa" font-size="10" font-family="Geist Mono">kube-proxy</text>
+      <text x="420" y="180" fill="#71717a" font-size="9" font-family="Geist Mono">192.168.1.12</text>
+
+      <line x1="210" y1="140" x2="230" y2="140" stroke="#D76C58" stroke-width="1.5"/>
+      <line x1="210" y1="140" x2="410" y2="140" stroke="#D76C58" stroke-width="1" stroke-dasharray="3,3"/>
+    </svg>
+    <figcaption>Topologie : 1 control-plane + 2 workers, CNI Calico, réseau flat /24</figcaption>
+  </figure>
+
+  <h2>Le playbook Ansible, étape par étape</h2>
+  <p>Le playbook est découpé en 4 rôles réutilisables :</p>
+  <ul>
+    <li><code>common</code> : prérequis système (swap off, modules kernel, sysctl)</li>
+    <li><code>containerd</code> : runtime de conteneurs + config cgroups</li>
+    <li><code>kubernetes</code> : install <code>kubelet</code>, <code>kubeadm</code>, <code>kubectl</code></li>
+    <li><code>cluster-init</code> : <code>kubeadm init</code> sur le master, <code>join</code> sur les workers</li>
+  </ul>
+
+  <h3>1. Préparer le système (rôle common)</h3>
+  <pre data-lang="yaml"><code><span class="cm"># roles/common/tasks/main.yml</span>
+<span class="kw">- name:</span> Disable swap
+  <span class="fn">ansible.builtin.command:</span> swapoff -a
+  <span class="kw">when:</span> ansible_swaptotal_mb > 0
+
+<span class="kw">- name:</span> Load kernel modules
+  <span class="fn">community.general.modprobe:</span>
+    <span class="kw">name:</span> <span class="st">"{{ item }}"</span>
+    <span class="kw">state:</span> present
+  <span class="kw">loop:</span>
+    - overlay
+    - br_netfilter
+
+<span class="kw">- name:</span> Sysctl for K8s networking
+  <span class="fn">ansible.posix.sysctl:</span>
+    <span class="kw">name:</span> <span class="st">"{{ item }}"</span>
+    <span class="kw">value:</span> <span class="st">"1"</span>
+    <span class="kw">state:</span> present
+    <span class="kw">reload:</span> yes
+  <span class="kw">loop:</span>
+    - net.bridge.bridge-nf-call-iptables
+    - net.ipv4.ip_forward</code></pre>
+
+  <div class="callout">
+    <b>Gotcha #1 : swap</b>
+    Si tu oublies de désactiver le swap <strong>et</strong> de le retirer de <code>/etc/fstab</code>, kubelet refusera de démarrer après le prochain reboot. Ça m'a coûté 2h la première fois.
+  </div>
+
+  <h3>2. Installer containerd</h3>
+  <p>
+    Depuis K8s 1.24, Docker Engine n'est plus supporté comme runtime. J'utilise <code>containerd</code> directement, avec <code>SystemdCgroup = true</code> pour matcher le driver de kubelet.
+  </p>
+
+  <pre data-lang="bash"><code><span class="cm"># Key point: cgroup driver must match kubelet</span>
+containerd config default &gt; /etc/containerd/config.toml
+sed -i <span class="st">'s/SystemdCgroup = false/SystemdCgroup = true/'</span> \
+  /etc/containerd/config.toml
+systemctl restart containerd</code></pre>
+
+  <h3>3. Bootstrap du control-plane</h3>
+  <pre data-lang="bash"><code>kubeadm init \
+  --apiserver-advertise-address=192.168.1.10 \
+  --pod-network-cidr=10.244.0.0/16 \
+  --upload-certs</code></pre>
+
+  <p>
+    La commande sort un <code>kubeadm join</code> à exécuter sur les workers. Je le capture via un <code>register:</code> Ansible puis je le passe en <code>set_fact:</code> avec <code>hostvars</code> pour que les workers puissent y accéder.
+  </p>
+
+  <h3>4. Installer le CNI (Calico)</h3>
+  <pre data-lang="bash"><code>kubectl apply -f https://raw.githubusercontent.com/projectcalico/\
+calico/v3.27/manifests/tigera-operator.yaml
+
+kubectl apply -f calico-custom-resources.yaml</code></pre>
+
+  <div class="callout">
+    <b>Gotcha #2 : CIDR collision</b>
+    Mon réseau LAN était en <code>192.168.1.0/24</code>. J'ai choisi <code>10.244.0.0/16</code> pour les pods pour éviter tout chevauchement. Si ça overlap, le routing part en sucette...
+  </div>
+
+  <h2>Résultat : <code>kubectl get nodes</code></h2>
+  <pre data-lang="shell"><code>NAME            STATUS   ROLES           AGE     VERSION
+control-plane   Ready    control-plane   4m12s   v1.29.2
+worker-01       Ready    &lt;none&gt;          2m47s   v1.29.2
+worker-02       Ready    &lt;none&gt;          2m45s   v1.29.2</code></pre>
+
+  <p>
+    Trois nœuds <code>Ready</code>, Calico qui tourne, et surtout un playbook qui me permet de détruire + recréer le cluster en ~8 minutes. Next steps : Traefik en ingress, ArgoCD pour le GitOps, et Prometheus pour le monitoring (sujets des prochains articles).
+  </p>
+
+  <blockquote>
+    "Le meilleur moyen de comprendre un abstraction cloud, c'est de la reconstruire à la main au moins une fois."
+  </blockquote>
+
+  <h2>Ce que j'en retire</h2>
+  <ol>
+    <li><strong>kubeadm peut rapidement se prendre en main</strong> ; c'est surtout les prérequis système (swap, modules, sysctl) qui font trébucher.</li>
+    <li><strong>Ansible + kubeadm = combo gagnant</strong> ; la logique impérative d'<code>init</code> / <code>join</code> se prête bien à un playbook.</li>
+    <li><strong>On-premise forme le réflexe "réseau"</strong> ; quand le CNI buggue, tu n'as personne à blâmer : tu lis les logs Calico.</li>
+  </ol>
+
+  <div class="end">
+    <span>← <a href="../index.html#blog">Retour au journal</a></span>
+    <span class="sig">$ echo "you build it, you run it"</span>
+  </div>
+</article>
+
+</body>
+</html>

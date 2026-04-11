@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoring K8s : Prometheus + Grafana de zéro · Nicolas Wibart</title>
+<meta name="description" content="Installer kube-prometheus-stack, créer ses premiers dashboards et écrire des alertes qui n'envoient pas de faux positifs à 3h du matin.">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./_article.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="brand"><span class="brand-dot"></span> Nicolas Wibart</a>
+    <a href="../index.html#blog" class="back">← Journal</a>
+  </div>
+</nav>
+
+<article class="post">
+  <div class="tag">Monitoring</div>
+  <h1>Monitoring K8s : Prometheus + Grafana de zéro</h1>
+  <div class="meta">
+    <span>05.03.2026</span>
+    <span>10 min de lecture</span>
+    <span>Nicolas Wibart</span>
+  </div>
+
+  <p class="lead">
+    Tu peux avoir le plus beau cluster Kubernetes du monde, sans observabilité, tu pilotes <em>à l'aveugle</em>. Voici comment j'ai mis en place une stack Prometheus + Grafana complète sur mon cluster on-premise, et surtout comment j'évite les fausses alertes à 3h du matin.
+  </p>
+
+  <h2>L'architecture en bref</h2>
+  <figure>
+    <svg viewBox="0 0 600 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="20" width="560" height="220" rx="6" stroke="#27272a" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="30" y="40" fill="#71717a" font-size="11" font-family="Geist Mono">namespace: monitoring</text>
+
+      <rect x="40" y="60" width="120" height="50" rx="4" stroke="#fafafa" fill="#0b0b0e"/>
+      <text x="100" y="92" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">node-exporter</text>
+      <rect x="40" y="125" width="120" height="50" rx="4" stroke="#fafafa" fill="#0b0b0e"/>
+      <text x="100" y="157" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">kube-state-metrics</text>
+      <rect x="40" y="190" width="120" height="40" rx="4" stroke="#fafafa" fill="#0b0b0e"/>
+      <text x="100" y="215" fill="#a1a1aa" font-size="10" font-family="Geist Mono" text-anchor="middle">app /metrics</text>
+
+      <line x1="160" y1="85"  x2="240" y2="135" stroke="#D76C58" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="160" y1="150" x2="240" y2="145" stroke="#D76C58" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="160" y1="210" x2="240" y2="155" stroke="#D76C58" stroke-width="1.2" marker-end="url(#a)"/>
+
+      <rect x="240" y="115" width="140" height="60" rx="4" stroke="#D76C58" stroke-width="1.5" fill="#0b0b0e"/>
+      <text x="310" y="140" fill="#D76C58" font-size="13" font-family="Geist Mono" text-anchor="middle">Prometheus</text>
+      <text x="310" y="158" fill="#a1a1aa" font-size="9" font-family="Geist Mono" text-anchor="middle">scrape · store · alert</text>
+
+      <line x1="380" y1="135" x2="450" y2="100" stroke="#D76C58" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="380" y1="155" x2="450" y2="190" stroke="#D76C58" stroke-width="1.2" marker-end="url(#a)"/>
+
+      <rect x="450" y="70"  width="120" height="50" rx="4" stroke="#fafafa" fill="#0b0b0e"/>
+      <text x="510" y="100" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">Grafana</text>
+      <rect x="450" y="170" width="120" height="50" rx="4" stroke="#ef4444" fill="#0b0b0e"/>
+      <text x="510" y="200" fill="#fafafa" font-size="11" font-family="Geist Mono" text-anchor="middle">Alertmanager</text>
+
+      <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D76C58"/></marker></defs>
+    </svg>
+    <figcaption>Stack complète : exporters → Prometheus → Grafana / Alertmanager</figcaption>
+  </figure>
+
+  <h2>Installation : kube-prometheus-stack</h2>
+  <p>
+    Plutôt que de gérer 12 manifests à la main, j'utilise le chart Helm <code>kube-prometheus-stack</code> de la communauté Prometheus. Il installe d'un coup : Prometheus Operator, Grafana, Alertmanager, node-exporter, kube-state-metrics, et tous les ServiceMonitors qui vont bien.
+  </p>
+
+  <pre data-lang="bash"><code>helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install kps prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  --values values.yaml</code></pre>
+
+  <p>Le fichier <code>values.yaml</code> est l'endroit où tout se joue :</p>
+
+  <pre data-lang="yaml"><code><span class="kw">prometheus:</span>
+  <span class="kw">prometheusSpec:</span>
+    <span class="kw">retention:</span> 15d
+    <span class="kw">storageSpec:</span>
+      <span class="kw">volumeClaimTemplate:</span>
+        <span class="kw">spec:</span>
+          <span class="kw">storageClassName:</span> longhorn
+          <span class="kw">resources:</span>
+            <span class="kw">requests:</span>
+              <span class="kw">storage:</span> 20Gi
+
+<span class="kw">grafana:</span>
+  <span class="kw">adminPassword:</span> <span class="st">"{{ vault_grafana_pwd }}"</span>
+  <span class="kw">ingress:</span>
+    <span class="kw">enabled:</span> <span class="st">true</span>
+    <span class="kw">ingressClassName:</span> traefik
+    <span class="kw">hosts:</span>
+      - grafana.lab.local
+
+<span class="kw">alertmanager:</span>
+  <span class="kw">config:</span>
+    <span class="kw">route:</span>
+      <span class="kw">receiver:</span> discord
+      <span class="kw">group_wait:</span> 30s
+      <span class="kw">repeat_interval:</span> 4h</code></pre>
+
+  <div class="callout">
+    <b>Persistence, par pitié</b>
+    Si tu skip le <code>storageSpec</code>, ton Prometheus perd toutes ses métriques au prochain restart de pod. C'est un coup classique. Toujours du PVC.
+  </div>
+
+  <h2>Premiers dashboards</h2>
+  <p>
+    Le chart pré-installe ~15 dashboards "canoniques" : <em>Cluster Overview</em>, <em>Node Exporter Full</em>, <em>Pods</em>, <em>API Server</em>. Pour 90% des usages quotidiens, ça suffit. Mes 3 préférés :
+  </p>
+  <ul>
+    <li><strong>Node Exporter Full</strong> ; CPU/RAM/disk par nœud, pour traquer les VMs en souffrance.</li>
+    <li><strong>Kubernetes / Compute Resources / Namespace (Pods)</strong> ; qui mange quoi, par namespace.</li>
+    <li><strong>Kubelet</strong> ; pour voir les pods qui font des restart loops.</li>
+  </ul>
+
+  <h2>Écrire une PrometheusRule (la bonne manière)</h2>
+  <p>
+    Le piège quand on débute, c'est d'écrire des alertes qui se déclenchent pour rien. La règle d'or : <strong>une alerte doit être actionnable</strong>. Si tu reçois un ping et que tu ne sais pas quoi faire, c'est qu'elle ne devrait pas exister.
+  </p>
+
+  <pre data-lang="yaml"><code><span class="kw">apiVersion:</span> monitoring.coreos.com/v1
+<span class="kw">kind:</span> PrometheusRule
+<span class="kw">metadata:</span>
+  <span class="kw">name:</span> app-rules
+  <span class="kw">namespace:</span> monitoring
+<span class="kw">spec:</span>
+  <span class="kw">groups:</span>
+    - <span class="kw">name:</span> fastapi.rules
+      <span class="kw">rules:</span>
+        - <span class="kw">alert:</span> FastAPIHighErrorRate
+          <span class="kw">expr:</span> |
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+              /
+            sum(rate(http_requests_total[5m])) &gt; 0.05
+          <span class="kw">for:</span> 10m
+          <span class="kw">labels:</span>
+            <span class="kw">severity:</span> warning
+          <span class="kw">annotations:</span>
+            <span class="kw">summary:</span> <span class="st">"FastAPI: &gt;5% d'erreurs 5xx"</span>
+            <span class="kw">runbook:</span> <span class="st">"https://wiki.lab.local/runbooks/fastapi-5xx"</span></code></pre>
+
+  <p>Trois trucs essentiels dans cette règle :</p>
+  <ol>
+    <li><code>for: 10m</code> ; l'alerte doit rester vraie 10 minutes avant de claquer. Ça filtre 90% du bruit.</li>
+    <li><code>severity: warning</code> ; pas tout en <code>critical</code>. Réserve le pour ce qui réveille à 3h.</li>
+    <li><code>runbook</code> ; un lien vers la procédure. Si t'as pas de procédure, écris-en une avant l'alerte.</li>
+  </ol>
+
+  <div class="callout">
+    <b>L'alerte qui m'a appris la patience</b>
+    Au début, j'avais une alerte "Pod restarted" sans <code>for:</code>. Résultat : 47 notifications le jour où ArgoCD a déployé une nouvelle version. Depuis, je mets <strong>toujours</strong> un <code>for:</code> et je me demande "est-ce que je veux être réveillé pour ça ?".
+  </div>
+
+  <h2>Routage Alertmanager : silencieux en journée, sérieux la nuit</h2>
+  <p>
+    Tu peux router les alertes selon leur sévérité, leur namespace, ou même l'heure. J'ai mis en place un routage simple : <code>warning</code> → Discord (canal #alerts), <code>critical</code> → Discord <strong>+</strong> ping personnel.
+  </p>
+
+  <pre data-lang="yaml"><code><span class="kw">route:</span>
+  <span class="kw">receiver:</span> discord-warn
+  <span class="kw">routes:</span>
+    - <span class="kw">match:</span>
+        <span class="kw">severity:</span> critical
+      <span class="kw">receiver:</span> discord-crit
+      <span class="kw">continue:</span> <span class="st">true</span></code></pre>
+
+  <h2>Ce que cette stack m'a appris</h2>
+  <ul>
+    <li><strong>Le monitoring n'est pas une option</strong> ; sans lui, tu ne sais pas ce qui casse, ni quand, ni pourquoi.</li>
+    <li><strong>Une alerte = une action</strong> ; sinon c'est du bruit.</li>
+    <li><strong>Les dashboards par défaut sont déjà très bons</strong> ; pas besoin de réinventer la roue dès le jour 1.</li>
+    <li><strong>PromQL est une compétence à part entière</strong> ; investis 2h dans <em>Prometheus: Up &amp; Running</em>, ça paye.</li>
+  </ul>
+
+  <blockquote>
+    "Tu ne peux pas opérer ce que tu ne mesures pas. Et tu ne peux pas dormir avec des alertes qui crient pour rien."
+  </blockquote>
+
+  <div class="end">
+    <span>← <a href="../index.html#blog">Retour au journal</a></span>
+    <span class="sig">$ echo "you build it, you run it"</span>
+  </div>
+</article>
+
+</body>
+</html>
