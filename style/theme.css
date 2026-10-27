@@ -1,0 +1,11 @@
+/* Shared warm neutral palette. */
+:root {
+  --color-paper: 246 243 236;
+  --color-surface: 255 253 250;
+  --color-ink: 37 59 59;
+  --color-body: 64 85 82;
+  --color-muted: 93 107 101;
+  --color-line: 220 221 211;
+  --color-accent: 165 72 48;
+  --color-sage: 83 116 98;
+}
